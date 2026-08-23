@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #F5F4F1;
+  color: #1A1917;
+  margin: 0;
+}
+
+:root {
+  --sidebar-w: 220px;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C8C5BB; border-radius: 99px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.fade-up  { animation: fadeUp 0.45s cubic-bezier(.22,1,.36,1) both; }
+.fade-in  { animation: fadeIn 0.3s ease both; }
+.count-up { animation: fadeUp 0.5s cubic-bezier(.22,1,.36,1) both; }
+.slide-in { animation: slideInLeft 0.3s cubic-bezier(.22,1,.36,1) both; }
+
+.delay-1 { animation-delay: .05s; }
+.delay-2 { animation-delay: .10s; }
+.delay-3 { animation-delay: .15s; }
+.delay-4 { animation-delay: .20s; }
+.delay-5 { animation-delay: .25s; }
+.delay-6 { animation-delay: .30s; }
+
+.lift { transition: transform .18s ease, box-shadow .18s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.07); }
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.07);
+  border-radius: 16px;
+}

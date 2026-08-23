@@ -1,0 +1,15 @@
+# Dependencies
+paisawise/node_modules/
+paisawise-backend/node_modules/
+
+# Build output
+paisawise/dist/
+
+# Environment files — never push these
+paisawise/.env
+paisawise/.env.local
+paisawise-backend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
