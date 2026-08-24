@@ -5,6 +5,9 @@ const jwt       = require('jsonwebtoken');
 // No dotenv here — server.js loads it first
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 pool.connect((err, client, release) => {
@@ -152,7 +155,7 @@ async function addExpense(userId, expense) {
             i.user_id AS "userId",
             i.name,
             c.slug    AS category,
-            i.amount,
+            i.amount::float AS amount,
             to_char(i.logged_at, 'HH24:MI') AS time,
             i.logged_at::date               AS date
      FROM inserted i
@@ -178,7 +181,7 @@ async function getTodayEntries(userId, selectedDate) {
             e.user_id AS "userId",
             e.name,
             c.slug    AS category,
-            e.amount,
+            e.amount::float AS amount,
             to_char(e.logged_at, 'HH24:MI') AS time,
             e.logged_at::date               AS date
      FROM expenses e

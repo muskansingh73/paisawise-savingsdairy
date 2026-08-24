@@ -92,9 +92,9 @@ export async function fetchDetailedTips() {
 }
 
 export function getTotalSpent(expenses = {}) {
-  return Object.values(expenses).reduce((a, b) => a + b, 0);
+  return Object.values(expenses).reduce((a, b) => a + Number(b), 0);
 }
 
 export function getTodayTotal(entries = []) {
-  return entries.reduce((a, e) => a + e.amount, 0);
+  return entries.reduce((a, e) => a + Number(e.amount), 0);
 }
