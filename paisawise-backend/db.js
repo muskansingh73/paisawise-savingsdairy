@@ -77,14 +77,7 @@ async function createUser({ name, email, password, monthly_income, savings_goal 
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
   // Seed sample expenses
-  await pool.query(
-    `INSERT INTO expenses (user_id, category_id, name, amount, logged_at) VALUES
-       ($1, (SELECT id FROM categories WHERE slug = 'travel'), 'Bus to office',   30,  $2),
-       ($1, (SELECT id FROM categories WHERE slug = 'food'),   'Chai + biscuits', 25,  $3),
-       ($1, (SELECT id FROM categories WHERE slug = 'food'),   'Dinner — Zomato', 380, $4),
-       ($1, (SELECT id FROM categories WHERE slug = 'food'),   'Groceries',       220, $5)`,
-    [user.id, `${today} 08:15`, `${today} 09:05`, `${yesterday} 20:30`, `${yesterday} 18:10`]
-  );
+  
 
   return user;
 }
