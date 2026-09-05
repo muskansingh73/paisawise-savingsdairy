@@ -8,10 +8,11 @@ import {
   CircleDollarSign, Plus, ArrowRight, Sun
 } from 'lucide-react';
 
-import StatCard    from '../components/StatCard';
-import CategoryBar from '../components/CategoryBar';
-import EntryRow    from '../components/EntryRow';
-import TipCard     from '../components/TipCard';
+import StatCard              from '../components/StatCard';
+import CategoryBar           from '../components/CategoryBar';
+import EntryRow              from '../components/EntryRow';
+import TipCard               from '../components/TipCard';
+import BudgetWarningBanner   from '../components/BudgetWarningBanner';  // ← new
 
 import {
   fetchUser,
@@ -19,6 +20,7 @@ import {
   fetchTodayEntries,
   fetchWeeklySpend,
   fetchSavingTips,
+  fetchCategoryBudgets,   // ← new
   getTotalSpent,
   getTodayTotal,
 } from '../services/api';
@@ -40,6 +42,7 @@ function CustomTooltip({ active, payload, label }) {
 export default function Dashboard({ onNavigate }) {
   const [user,         setUser]     = useState(null);
   const [expenses,     setExpenses] = useState({});
+  const [budgets,      setBudgets]  = useState({});   // ← new
   const [todayEntries, setToday]    = useState([]);
   const [weeklySpend,  setWeekly]   = useState([]);
   const [tips,         setTips]     = useState([]);
@@ -48,20 +51,21 @@ export default function Dashboard({ onNavigate }) {
 
   useEffect(() => {
     setLoading(true);
-    setError('');
     Promise.all([
       fetchUser(),
       fetchMonthlyExpenses(),
       fetchTodayEntries(),
       fetchWeeklySpend(),
       fetchSavingTips(),
+      fetchCategoryBudgets(),   // ← new
     ])
-      .then(([u, exp, today, weekly, t]) => {
+      .then(([u, exp, today, weekly, t, b]) => {
         setUser(u);
         setExpenses(exp);
         setToday(today);
         setWeekly(weekly);
         setTips(t);
+        setBudgets(b);          // ← new
       })
       .catch(err => {
         console.error('Dashboard load error:', err);
@@ -109,7 +113,7 @@ export default function Dashboard({ onNavigate }) {
   return (
     <div className="min-h-full">
 
-      {/* ── Desktop top bar ── */}
+      {/* Desktop top bar */}
       <header className="hidden lg:flex bg-white border-b border-black/[0.07] px-7 py-4 items-center justify-between sticky top-0 z-10 fade-in">
         <div>
           <div className="flex items-center gap-2">
@@ -120,15 +124,12 @@ export default function Dashboard({ onNavigate }) {
             {user?.name}'s Dashboard
           </h1>
         </div>
-        <button
-          onClick={() => onNavigate('daily')}
-          className="btn-primary"
-        >
+        <button onClick={() => onNavigate('daily')} className="btn-primary">
           <Plus size={14} /> Add expense
         </button>
       </header>
 
-      {/* ── Mobile greeting ── */}
+      {/* Mobile greeting */}
       <div className="lg:hidden px-4 pt-4 pb-2 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-1.5">
@@ -144,116 +145,114 @@ export default function Dashboard({ onNavigate }) {
         </button>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-7 py-4 lg:py-6 flex flex-col gap-4 lg:gap-6">
+      <div className="px-4 sm:px-6 lg:px-7 py-4 lg:py-6 flex flex-col gap-4 lg:gap-5">
 
-        {/* ── Stat cards ── */}
+        {/* ── Budget warnings — shows when near/over limit ── */}
+        <BudgetWarningBanner expenses={expenses} budgets={budgets} />
+
+        {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          <StatCard
-            label="Monthly income"
-            value={`₹${income.toLocaleString('en-IN')}`}
-            sub={user?.month || ''}
-            accent="green"
-            icon={Wallet}
-            emoji="💰"
-            gradient="bg-rupee-400"
-            delay={1}
-          />
-          <StatCard
-            label="Total spent"
-            value={`₹${totalSpent.toLocaleString('en-IN')}`}
-            sub={`${spentPct}% of income`}
-            accent="red"
-            icon={TrendingDown}
-            emoji="📉"
-            gradient="bg-flame-400"
-            delay={2}
-          />
-          <StatCard
-            label="Saved so far"
-            value={`₹${savedAmt.toLocaleString('en-IN')}`}
-            sub={`${savingsPct}% of ₹${goalAmt.toLocaleString('en-IN')} goal`}
-            accent="blue"
-            icon={PiggyBank}
-            emoji="🐷"
-            gradient="bg-sapphire-400"
-            delay={3}
-          />
-          <StatCard
-            label="Balance left"
-            value={`₹${balance.toLocaleString('en-IN')}`}
-            sub={`${100 - spentPct}% remaining`}
-            accent="violet"
-            icon={CircleDollarSign}
-            emoji="🏦"
-            gradient="bg-violet-400"
-            delay={4}
-          />
+          <StatCard label="Monthly income" value={`₹${income.toLocaleString('en-IN')}`}       sub={user?.month || ''}             accent="green"  icon={Wallet}           emoji="💰" gradient="bg-rupee-400" delay={1} />
+          <StatCard label="Total spent"    value={`₹${totalSpent.toLocaleString('en-IN')}`}   sub={`${spentPct}% of income`}      accent="red"    icon={TrendingDown}     emoji="📉" gradient="bg-flame-400" delay={2} />
+          <StatCard label="Saved so far"   value={`₹${savedAmt.toLocaleString('en-IN')}`}     sub={`${savingsPct}% of goal`}      accent="blue"   icon={PiggyBank}        emoji="🐷" gradient="bg-sapphire-400" delay={3} />
+          <StatCard label="Balance left"   value={`₹${balance.toLocaleString('en-IN')}`}      sub={`${100 - spentPct}% remaining`} accent="violet" icon={CircleDollarSign} emoji="🏦" gradient="bg-violet-400" delay={4} />
         </div>
 
-        {/* ── Category breakdown + Donut ── */}
+        {/* Category breakdown + Donut */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
+          {/* Category bars — now shows budget comparison */}
           <div className="card px-4 sm:px-5 py-4 sm:py-5 fade-up delay-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-[14px] text-ink-800">
-                Spending by category
+                Spending vs budget
               </h2>
-              <span className="text-[11px] text-ink-400">
-                {user?.month}
-              </span>
+              <span className="text-[11px] text-ink-400">{user?.month}</span>
             </div>
 
             {sortedCategories.length === 0 ? (
               <div className="flex flex-col items-center py-8 gap-2">
                 <span className="text-3xl">📭</span>
                 <p className="text-[12px] text-ink-400">No expenses yet this month</p>
-                <button
-                  onClick={() => onNavigate('daily')}
-                  className="text-[12px] text-rupee-600 font-medium hover:text-rupee-800"
-                >
+                <button onClick={() => onNavigate('daily')} className="text-[12px] text-rupee-600 font-medium">
                   Add your first expense →
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 sm:gap-3.5">
-                {sortedCategories.map((cat, i) => (
-                  <CategoryBar
-                    key={cat.id}
-                    categoryId={cat.id}
-                    amount={expenses[cat.id]}
-                    total={totalSpent}
-                    delay={i + 1}
-                  />
-                ))}
+              <div className="flex flex-col gap-4">
+                {sortedCategories.map((cat, i) => {
+                  const spent  = expenses[cat.id] || 0;
+                  const budget = budgets[cat.id]  || 0;
+                  const pct    = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+                  const isOver = pct >= 100;
+                  const isWarn = pct >= 80 && !isOver;
+
+                  return (
+                    <div key={cat.id} className={`fade-up delay-${i + 1}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-2xl flex items-center justify-center text-[15px] flex-shrink-0"
+                          style={{ background: cat.bg }}>
+                          {cat.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-[12px] font-medium text-ink-700">{cat.label}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[12px] font-mono font-semibold text-ink-800">
+                                ₹{spent.toLocaleString('en-IN')}
+                              </span>
+                              {budget > 0 && (
+                                <span className="text-[10px] text-ink-400">
+                                  / ₹{budget.toLocaleString('en-IN')}
+                                </span>
+                              )}
+                              {isOver && (
+                                <span className="text-[10px] bg-flame-50 text-flame-600 font-semibold px-1.5 py-0.5 rounded-full">
+                                  Over!
+                                </span>
+                              )}
+                              {isWarn && (
+                                <span className="text-[10px] bg-amber-50 text-amber-600 font-semibold px-1.5 py-0.5 rounded-full">
+                                  {pct}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{
+                                width: `${budget > 0 ? Math.min(pct, 100) : Math.min((spent / totalSpent) * 100, 100)}%`,
+                                background: isOver ? '#D85A30' : isWarn ? '#EF9F27' : cat.color,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
+          {/* Donut + savings goal */}
           <div className="card px-4 sm:px-5 py-4 sm:py-5 fade-up delay-3">
             <h2 className="font-display font-semibold text-[14px] text-ink-800 mb-4">
               Budget overview
             </h2>
-
             {donutData.length === 0 ? (
               <div className="flex flex-col items-center py-8 gap-2">
                 <span className="text-3xl">🍩</span>
-                <p className="text-[12px] text-ink-400">Start adding expenses to see your breakdown</p>
+                <p className="text-[12px] text-ink-400">Add expenses to see your breakdown</p>
               </div>
             ) : (
-              <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-4">
                 <div style={{ width: 130, height: 130, flexShrink: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie
-                        data={donutData}
-                        cx="50%" cy="50%"
-                        innerRadius={38} outerRadius={58}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {donutData.map((d, i) => (
-                          <Cell key={i} fill={d.color} stroke="none" />
-                        ))}
+                      <Pie data={donutData} cx="50%" cy="50%" innerRadius={38} outerRadius={58} paddingAngle={2} dataKey="value">
+                        {donutData.map((d, i) => <Cell key={i} fill={d.color} stroke="none" />)}
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
@@ -272,7 +271,6 @@ export default function Dashboard({ onNavigate }) {
               </div>
             )}
 
-            {/* Savings goal bar */}
             <div className="mt-4 pt-4 border-t border-black/[0.06]">
               <div className="flex justify-between text-[11px] mb-1.5">
                 <span className="text-ink-500">Savings goal</span>
@@ -281,126 +279,73 @@ export default function Dashboard({ onNavigate }) {
                 </span>
               </div>
               <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-rupee-400 rounded-full transition-all duration-1000"
-                  style={{ width: `${Math.min(savingsPct, 100)}%` }}
-                />
+                <div className="h-full bg-rupee-400 rounded-full" style={{ width: `${Math.min(savingsPct, 100)}%` }} />
               </div>
               <div className="text-[10px] text-ink-400 mt-1">{savingsPct}% of goal reached</div>
             </div>
           </div>
         </div>
 
-        {/* ── Weekly chart + Today's log + Tips ── */}
+        {/* Weekly + Today + Tips */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-          {/* Weekly bar chart */}
           <div className="card px-4 sm:px-5 py-4 sm:py-5 md:col-span-2 lg:col-span-1 fade-up delay-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-semibold text-[14px] text-ink-800">This week</h2>
               <span className="text-[11px] text-ink-400">Daily spend</span>
             </div>
             <ResponsiveContainer width="100%" height={140}>
-              <BarChart
-                data={weeklySpend}
-                barSize={16}
-                margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
-              >
-                <XAxis
-                  dataKey="day"
-                  tick={{ fontSize: 10, fill: '#8C8980' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 9, fill: '#8C8980' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={v => `₹${v}`}
-                />
+              <BarChart data={weeklySpend} barSize={16} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#8C8980' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 9, fill: '#8C8980' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v}`} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F5F4F1' }} />
                 <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
                   {weeklySpend.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={entry.amount === Math.max(...weeklySpend.map(w => w.amount))
-                        ? '#1D9E75'
-                        : '#DDD9D0'
-                      }
-                    />
+                    <Cell key={i} fill={entry.amount === Math.max(...weeklySpend.map(w => w.amount)) ? '#1D9E75' : '#DDD9D0'} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Today's log */}
           <div className="card px-4 sm:px-5 py-4 sm:py-5 fade-up delay-3">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-[14px] text-ink-800">
-                Today's log
-              </h2>
+              <h2 className="font-display font-semibold text-[14px] text-ink-800">Today's log</h2>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[12px] text-ink-700">
-                  ₹{todayTotal.toLocaleString('en-IN')}
-                </span>
-                <button
-                  onClick={() => onNavigate('daily')}
-                  className="flex items-center gap-1 text-[10px] text-rupee-600 font-medium hover:text-rupee-800"
-                >
+                <span className="font-mono text-[12px] text-ink-700">₹{todayTotal.toLocaleString('en-IN')}</span>
+                <button onClick={() => onNavigate('daily')} className="flex items-center gap-1 text-[10px] text-rupee-600 font-medium">
                   All <ArrowRight size={10} />
                 </button>
               </div>
             </div>
-
             {todayEntries.length === 0 ? (
               <div className="flex flex-col items-center py-6 gap-2">
                 <span className="text-2xl">☀️</span>
-                <p className="text-[12px] text-ink-400 text-center">
-                  No expenses logged today
-                </p>
-                <button
-                  onClick={() => onNavigate('daily')}
-                  className="text-[11px] text-rupee-600 font-medium"
-                >
-                  Log first expense →
-                </button>
+                <p className="text-[12px] text-ink-400 text-center">No expenses today</p>
+                <button onClick={() => onNavigate('daily')} className="text-[11px] text-rupee-600 font-medium">Log first expense →</button>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5 overflow-y-auto" style={{ maxHeight: 200 }}>
                 {todayEntries.slice(0, 6).map(entry => (
                   <EntryRow key={entry.id} entry={entry} />
                 ))}
-                {todayEntries.length > 6 && (
-                  <p className="text-[10px] text-ink-400 text-center mt-1">
-                    +{todayEntries.length - 6} more
-                  </p>
-                )}
               </div>
             )}
           </div>
 
-          {/* Saving tips */}
           <div className="card px-4 sm:px-5 py-4 sm:py-5 fade-up delay-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-[14px] text-ink-800">
-                Saving tips
-              </h2>
-              <button
-                onClick={() => onNavigate('tips')}
-                className="flex items-center gap-1 text-[10px] text-rupee-600 font-medium hover:text-rupee-800"
-              >
+              <h2 className="font-display font-semibold text-[14px] text-ink-800">Saving tips</h2>
+              <button onClick={() => onNavigate('tips')} className="flex items-center gap-1 text-[10px] text-rupee-600 font-medium">
                 All <ArrowRight size={10} />
               </button>
             </div>
             <div className="flex flex-col gap-2">
-              {tips.slice(0, 4).map((tip, i) => (
-                <TipCard key={i} tip={tip} delay={i + 1} />
-              ))}
+              {tips.slice(0, 4).map((tip, i) => <TipCard key={i} tip={tip} delay={i + 1} />)}
             </div>
           </div>
-
         </div>
+
       </div>
     </div>
   );

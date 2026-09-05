@@ -98,3 +98,16 @@ export function getTotalSpent(expenses = {}) {
 export function getTodayTotal(entries = []) {
   return entries.reduce((a, e) => a + Number(e.amount), 0);
 }
+
+// ── Budgets ────────────────────────────────────────────────────
+
+
+export async function updateCategoryBudget(category, amount) {
+  const res = await api.patch('/budgets', { category, amount });
+  return res.data;
+}
+
+export async function recalculateBudgets() {
+  const res = await api.post('/budgets/recalculate');
+  return res.data;
+}

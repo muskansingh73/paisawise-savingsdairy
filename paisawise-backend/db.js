@@ -76,10 +76,51 @@ async function createUser({ name, email, password, monthly_income, savings_goal 
   const today     = new Date().toISOString().slice(0, 10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
-  // Seed sample expenses
+  if (incomeVal > 0) {
+    await autoCreateBudgets(user.id, incomeVal, goalVal);
+  }
+
   
 
   return user;
+}
+
+async function autoCreateBudgets(userId, income, savingsGoal) {
+  const month = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+
+  // Smart budget split based on income
+  const budgets = [
+    { slug: 'rent',          pct: 0.30 },
+    { slug: 'food',          pct: 0.15 },
+    { slug: 'travel',        pct: 0.10 },
+    { slug: 'shopping',      pct: 0.08 },
+    { slug: 'health',        pct: 0.05 },
+    { slug: 'entertainment', pct: 0.05 },
+    { slug: 'savings',       pct: savingsGoal > 0 ? savingsGoal / income : 0.20 },
+  ];
+
+  for (const b of budgets) {
+    const amount = Math.round(income * b.pct);
+    await pool.query(
+      `INSERT INTO budgets (user_id, category_id, month, amount)
+       VALUES ($1, (SELECT id FROM categories WHERE slug = $2), $3, $4)
+       ON CONFLICT (user_id, category_id, month) DO UPDATE SET amount = EXCLUDED.amount`,
+      [userId, b.slug, month, amount]
+    );
+  }
+}
+
+async function updateBudget(userId, categorySlug, amount) {
+  const month = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+
+  await pool.query(
+    `INSERT INTO budgets (user_id, category_id, month, amount)
+     VALUES ($1, (SELECT id FROM categories WHERE slug = $2), $3, $4)
+     ON CONFLICT (user_id, category_id, month) DO UPDATE SET amount = EXCLUDED.amount`,
+    [userId, categorySlug, month, Number(amount)]
+  );
+
+  return { category: categorySlug, amount: Number(amount), month };
 }
 
 async function findUserByEmail(email) {
@@ -288,5 +329,7 @@ module.exports = {
   getMonthlyTrend,
   getPastMonths,
   getBudgets,
+  updateBudget,
   getTips,
+  autoCreateBudgets,
 };
