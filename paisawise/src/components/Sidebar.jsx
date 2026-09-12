@@ -178,7 +178,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, user, onL
       {/* Desktop sidebar — always visible */}
       <aside
         className="hidden lg:flex flex-col fixed top-0 left-0 h-screen bg-white border-r border-black/[0.05] z-20"
-        style={{ width: 'var(--sidebar-w)' }}
+        style={{ width: 'var(--sidebar-w)' , height: '100vh' }}
       >
         {content}
       </aside>
