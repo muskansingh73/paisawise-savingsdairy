@@ -197,10 +197,12 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, user, onL
         className="lg:hidden fixed top-0 left-0 h-screen bg-white z-40"
         style={{
           width: '280px',
+          height: '100vh',
           transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s ease',
           display: 'flex',
           flexDirection: 'column',
+          overflowY: 'auto',
         }}
       >
         {content}
